@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hegen-style Layout</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #fff;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .gallery {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .gallery-row {
+            display: flex;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .photo {
+            background-color: #eee;
+            margin-right: 8px;
+            position: relative;
+            transition: opacity 0.3s ease;
+        }
+
+        .photo:last-child {
+            margin-right: 0;
+        }
+
+        .photo:hover {
+            opacity: 0.9;
+        }
+
+        /* Loading animation */
+        @keyframes loading {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="gallery" id="gallery"></div>
+
+    <script>
+        class HegenLayout {
+            constructor(container, options = {}) {
+                this.container = container;
+                this.options = {
+                    targetRowHeight: 300,
+                    containerPadding: 20,
+                    boxSpacing: 8,
+                    maxRows: 0,
+                    ...options
+                };
+                
+                // Sample images with different aspect ratios
+                this.images = [
+                    { id: 1, width: 1600, height: 1200, aspectRatio: 1.33 },
+                    { id: 2, width: 800, height: 1200, aspectRatio: 0.67 },
+                    { id: 3, width: 1600, height: 900, aspectRatio: 1.78 },
+                    { id: 4, width: 1200, height: 1600, aspectRatio: 0.75 },
+                    { id: 5, width: 1600, height: 1066, aspectRatio: 1.5 },
+                    { id: 6, width: 1200, height: 800, aspectRatio: 1.5 },
+                    { id: 7, width: 800, height: 1200, aspectRatio: 0.67 },
+                    { id: 8, width: 1600, height: 900, aspectRatio: 1.78 },
+                    { id: 9, width: 1200, height: 1600, aspectRatio: 0.75 },
+                    { id: 10, width: 1600, height: 1200, aspectRatio: 1.33 },
+                    // Add more images as needed
+                ];
+            }
+
+            // Calculate dimensions for a row of images
+            calculateRow(images, containerWidth) {
+                const rowWidth = containerWidth - this.options.containerPadding * 2;
+                let totalAspectRatio = images.reduce((sum, img) => sum + img.aspectRatio, 0);
+                let rowHeight = (rowWidth - (images.length - 1) * this.options.boxSpacing) / totalAspectRatio;
+                
+                return images.map(image => ({
+                    id: image.id,
+                    width: rowHeight * image.aspectRatio,
+                    height: rowHeight
+                }));
+            }
+
+            // Layout all images
+            layout() {
+                const containerWidth = this.container.offsetWidth;
+                let currentRow = [];
+                let rows = [];
+                let rowAspectRatio = 0;
+                const targetAspectRatio = containerWidth / this.options.targetRowHeight;
+
+                // Process all images
+                for (let image of this.images) {
+                    currentRow.push(image);
+                    rowAspectRatio += image.aspectRatio;
+
+                    // Check if this row is full
+                    if (rowAspectRatio >= targetAspectRatio) {
+                        rows.push(this.calculateRow(currentRow, containerWidth));
+                        currentRow = [];
+                        rowAspectRatio = 0;
+                    }
+                }
+
+                // Handle last row if any images remain
+                if (currentRow.length > 0) {
+                    rows.push(this.calculateRow(currentRow, containerWidth));
+                }
+
+                this.render(rows);
+            }
+
+            // Render the layout
+            render(rows) {
+                this.container.innerHTML = '';
+                
+                rows.forEach(row => {
+                    const rowElement = document.createElement('div');
+                    rowElement.className = 'gallery-row';
+                    
+                    row.forEach(image => {
+                        const photoElement = document.createElement('div');
+                        photoElement.className = 'photo loading';
+                        photoElement.style.width = `${image.width}px`;
+                        photoElement.style.height = `${image.height}px`;
+                        // Generate a different color for each photo (for demonstration)
+                        photoElement.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 80%)`;
+                        rowElement.appendChild(photoElement);
+                    });
+                    
+                    this.container.appendChild(rowElement);
+                });
+            }
+        }
+
+        // Initialize the layout
+        const gallery = new HegenLayout(document.getElementById('gallery'), {
+            targetRowHeight: 300,
+            containerPadding: 20,
+            boxSpacing: 8
+        });
+
+        // Initial layout
+        gallery.layout();
+
+        // Relayout on window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => gallery.layout(), 100);
+        });
+    </script>
+</body>
+</html>
